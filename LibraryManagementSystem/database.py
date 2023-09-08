@@ -1,99 +1,112 @@
-import sqlite3
+# database.py
 import datetime
+from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+
+# Define the SQLAlchemy Base
+Base = declarative_base()
+
+class Book(Base):
+    __tablename__ = 'books'
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String)
+    author = Column(String)
+
+class RentedBook(Base):
+    __tablename__ = 'rented_books'
+
+    id = Column(Integer, primary_key=True)
+    book_id = Column(Integer, ForeignKey('books.id'))
+    renter_name = Column(String)
+    rent_date = Column(Date)
+    return_date = Column(Date)
+    returned = Column(Integer, default=0)
+
+class User(Base):
+    __tablename__ = 'users'
+
+    user_id = Column(Integer, primary_key=True)
+    username = Column(String)
 
 def initialize_database():
-    connection = sqlite3.connect("books.db")
-    cursor = connection.cursor()
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS books (
-            id INTEGER PRIMARY KEY,
-            title TEXT,
-            author TEXT
-        )
-    ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS rented_books (
-            id INTEGER PRIMARY KEY,
-            book_id INTEGER,
-            renter_name TEXT,
-            rent_date DATE,
-            return_date DATE,
-            location TEXT,
-            returned INTEGER DEFAULT 0,
-            FOREIGN KEY (book_id) REFERENCES books (id)
-        )
-    ''')
-
-    connection.commit()
-    connection.close()
+    # Create an SQLite database and tables using SQLAlchemy
+    engine = create_engine('sqlite:///books.db')
+    Base.metadata.create_all(engine)
 
 def add_initial_books():
-    connection = sqlite3.connect("books.db")
-    cursor = connection.cursor()
+    # Create initial books using SQLAlchemy
+    engine = create_engine('sqlite:///books.db')
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
     books = [
-        ("Petals of Blood", "Ngũgĩ wa Thiong’o"),
-        ("Thursdays", "Jackson Biko"),
-        ("The Havoc of Choice", "Wanjiru Koinange"),
-        ("A Kenyan Christmas", "John Kimani"),
-        ("A Mama for Owen", "Jane Oliech"),
-        ("For You Are a Kenyan Child", "Brian Chege"),
+        Book(title="Petals of Blood", author="Ngũgĩ wa Thiong’o"),
+        Book(title="Thursdays", author="Jackson Biko"),
+        Book(title="The Havoc of Choice", author="Wanjiru Koinange"),
+        Book(title="A Kenyan Christmas", author="John Kimani"),
+        Book(title="A Mama for Owen", author="Jane Oliech"),
+        Book(title="For You Are a Kenyan Child", author="Brian Chege"),
     ]
 
-    for book in books:
-        cursor.execute("INSERT INTO books (title, author) VALUES (?, ?)", book)
-
-    connection.commit()
-    connection.close()
+    session.add_all(books)
+    session.commit()
+    session.close()
 
 def list_books():
-    connection = sqlite3.connect("books.db")
-    cursor = connection.cursor()
+    engine = create_engine('sqlite:///books.db')
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-    cursor.execute("SELECT * FROM books")
-    books = cursor.fetchall()
+    books = session.query(Book).all()
 
     for book in books:
-        print(f"ID: {book[0]}, Title: {book[1]}, Author: {book[2]}")
+        print(f"ID: {book.id}, Title: {book.title}, Author: {book.author}")
 
-    connection.close()
+    session.close()
 
 def rent_book(book_id, renter_name, days_to_rent):
-    connection = sqlite3.connect("books.db")
-    cursor = connection.cursor()
+    engine = create_engine('sqlite:///books.db')
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
     rent_date = datetime.date.today()
     return_date = rent_date + datetime.timedelta(days=days_to_rent)
 
-    cursor.execute("INSERT INTO rented_books (book_id, renter_name, rent_date, return_date) VALUES (?, ?, ?, ?)",
-                   (book_id, renter_name, rent_date, return_date))
-
-    connection.commit()
-    connection.close()
+    rented_book = RentedBook(book_id=book_id, renter_name=renter_name, rent_date=rent_date, return_date=return_date)
+    session.add(rented_book)
+    session.commit()
+    session.close()
 
 def return_book(rent_id):
-    connection = sqlite3.connect("books.db")
-    cursor = connection.cursor()
+    engine = create_engine('sqlite:///books.db')
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-    cursor.execute("UPDATE rented_books SET returned = 1 WHERE id = ?", (rent_id,))
+    rented_book = session.query(RentedBook).filter_by(id=rent_id).first()
+    if rented_book:
+        rented_book.returned = 1
+        session.commit()
+    else:
+        print("Book with ID not found in rentals.")
 
-    connection.commit()
-    connection.close()
+    session.close()
 
 def search_books(query):
-    connection = sqlite3.connect("books.db")
-    cursor = connection.cursor()
+    engine = create_engine('sqlite:///books.db')
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-    cursor.execute("SELECT * FROM books WHERE title LIKE ? OR author LIKE ?", ('%' + query + '%', '%' + query + '%'))
-    books = cursor.fetchall()
+    books = session.query(Book).filter(
+        (Book.title.like(f'%{query}%')) | (Book.author.like(f'%{query}%'))
+    ).all()
 
     if not books:
         print("No matching books found.")
     else:
         print("Matching books:")
         for book in books:
-            print(f"ID: {book[0]}, Title: {book[1]}, Author: {book[2]}")
+            print(f"ID: {book.id}, Title: {book.title}, Author: {book.author}")
 
-    connection.close()
+    session.close()

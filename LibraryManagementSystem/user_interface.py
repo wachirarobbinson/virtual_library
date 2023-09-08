@@ -16,7 +16,7 @@ def rent_a_book():
     print(f"Book rented successfully! Return by {return_date}")
 
 def main():
-    # Initialize the database and add initial books if needed
+    
     initialize_database()
     add_initial_books()
 
@@ -42,7 +42,8 @@ def main():
             print("Book returned successfully!")
 
         elif choice == "4":
-            search_for_book()
+            query = input("Enter book title or author to search: ")
+            search_books(query)
 
         elif choice == "5":
             print("Have a nice day!")
