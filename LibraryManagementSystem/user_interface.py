@@ -12,14 +12,8 @@ def rent_a_book():
         return
 
     rent_book(book_id, renter_name, days_to_rent)
-
-def return_a_book():
-    rent_id = int(input("Enter rent ID to return: "))
-    return_book(rent_id)
-
-def search_for_book():
-    query = input("Enter book title or author to search: ")
-    search_books(query)
+    return_date = datetime.date.today() + datetime.timedelta(days=days_to_rent)
+    print(f"Book rented successfully! Return by {return_date}")
 
 def main():
     # Initialize the database and add initial books if needed
@@ -43,7 +37,9 @@ def main():
             rent_a_book()
 
         elif choice == "3":
-            return_a_book()
+            book_id = int(input("Enter book ID to return: "))
+            return_book(book_id)
+            print("Book returned successfully!")
 
         elif choice == "4":
             search_for_book()
