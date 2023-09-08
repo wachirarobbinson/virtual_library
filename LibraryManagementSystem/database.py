@@ -60,7 +60,6 @@ def list_books():
 
     connection.close()
 
-
 def rent_book(book_id, renter_name, days_to_rent):
     connection = sqlite3.connect("books.db")
     cursor = connection.cursor()
